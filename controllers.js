@@ -2,34 +2,28 @@ const puppeteer = require("puppeteer");
 
 const flipkart = async (req, res) => {
   try {
-    let url =
-      "https://www.flipkart.com/mobiles-accessories/mobiles/pr?sid=tyy,4io&otracker=categorytree";
-    const browser = await puppeteer.launch();
+    let url = `https://www.amazon.in/s?k=${req.body.name}`;
+    let asin = req.body.asin;
+    const browser = await puppeteer.launch({ headless: false });
     const page = await browser.newPage();
     await page.goto(url);
-    let data = await page.evaluate(() => {
-      let results = [];
-      let items = document.querySelectorAll("div._1AtVbE > div._13oc-S");
-      items.forEach((item) => {
-        results.push({
-          name: item.querySelector("div._4rR01T").innerText,
-          price: item.querySelector("div._30jeq3").innerText,
-        });
-      });
-      return results;
-    });
+    let results = {};
+    results.index = await page.$eval(
+      `div.s-result-item[data-asin='${asin}']`,
+      (el) => el.getAttribute("data-index")
+    );
     await browser.close();
-    res.send(data);
-    console.log(data);
+    res.send(results);
   } catch (err) {
     console.log(err);
-    res.send(err);
+    res.send(err.message);
   }
 };
 
 const snapdeal = async (req, res) => {
   try {
     let url = "https://www.snapdeal.com/search?keyword=tshirts&sort=rlvncy";
+    let asin = req.body.asin;
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
     await page.goto(url);
@@ -42,8 +36,10 @@ const snapdeal = async (req, res) => {
           price: item.querySelector("span.product-price").innerText,
         });
       });
+      console.log(asin);
       return results;
     });
+    console.log(asin);
     await browser.close();
     res.send(data);
     console.log(data);
@@ -55,16 +51,16 @@ const snapdeal = async (req, res) => {
 
 const flipkart_full = async (req, res) => {
   try {
-    let flipkartUrl =
-      "https://www.flipkart.com/mobiles-accessories/mobiles/pr?sid=tyy,4io&otracker=categorytree";
+    let url = `https://www.amazon.in/s?k=${req.body.value}`;
+    let asin = req.body.asin;
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
-    await page.goto(flipkartUrl);
-    let urls = await page.$$eval("div._1AtVbE > div._13oc-S", (link) => {
+    await page.goto(url);
+    let result = [];
+    let items = await page.$$eval(`div.asin`, (link) => {
       link = link.map((el) => el.querySelector("a._1fQZEK").href);
       return link;
     });
-
     let data = async (link) => {
       let obj = {};
       let newPage = await browser.newPage();
